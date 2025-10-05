@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Thi Nghe PET - Part 1 & 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Calm Academia -->
+    <!-- Application Structure Plan: Cấu trúc chia thành hai khu vực chính: 1) Khu vực Câu hỏi (luôn hiển thị, có thể chọn đáp án) và 2) Khu vực Đáp án/Kịch bản (ẩn, được kích hoạt bằng nút). Đã thêm chức năng chọn và highlight câu trả lời cho người dùng. Nút "Kiểm tra" có chức năng ẩn/hiện và tạo nội dung giải đáp chi tiết (bao gồm kịch bản nghe và đáp án). -->
+    <!-- Visualization & Content Choices: Report Info: Kịch bản và câu hỏi thi Nghe PET -> Goal: Kiểm tra, tương tác chọn đáp án, và cung cấp đáp án chi tiết -> Viz/Presentation Method: Sử dụng danh sách và thẻ HTML để trình bày câu hỏi và kịch bản. Đáp án được làm nổi bật. -> Interaction: Nút bấm sử dụng Vanilla JS để chuyển trạng thái ẩn/hiện của phần giải đáp. Thêm hàm click để highlight câu trả lời người dùng đã chọn (selected). -> Justification: Tối ưu hóa trải nghiệm làm bài trắc nghiệm với phản hồi trực quan. -> Library/Method: Vanilla JS cho tương tác. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .section-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .question-option {
+            cursor: pointer;
+            transition: background-color 0.1s;
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+        .question-option:hover:not(.selected) {
+            background-color: #f3f4f6;
+        }
+        /* Style for user-selected option */
+        .question-option.selected {
+            background-color: #d1e7dd; /* Light green/teal */
+            border: 1px solid #0f9b6e;
+            font-weight: 600;
+        }
+        .correct-answer-key {
+            color: #10b981; /* Green-500 */
+            font-weight: bold;
+        }
+    </style>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    
+    <script>
+        const scriptData = {
+            part1: [
+                { id: 1, question: "What time does the flight to Paris leave?", options: ["14:15", "15:45", "16:30"], answer: "B", script: "Woman: Hello, I’d like to confirm the departure time for flight BA255 to Paris, please.\nMan: Let me check. BA255... Ah, yes. It was scheduled for 16:30, but there's a delay. It's now expected to leave at quarter past three.\nWoman: Quarter past three? So 15:15? Not 14:15, then?\nMan: No, 15:45, madam. That’s an hour and fifteen minutes later than planned." },
+                { id: 2, question: "Which part of the journey did the man enjoy the most?", options: ["The boat trip.", "The mountain hike.", "The train ride."], answer: "C", script: "Man: We had such an amazing holiday!\nWoman: I remember you said you were going mountain climbing. Was that the best part?\nMan: The hike was great, but the long, bumpy train journey through the valley was definitely an experience I won't forget. Much better than the short boat trip we took on the lake, which was too crowded." },
+                { id: 3, question: "Where did the woman leave her car keys?", options: ["On the kitchen counter.", "In her handbag.", "On the table next to the sofa."], answer: "C", script: "Man: Did you find your car keys? I thought you put them in your handbag this morning.\nWoman: I thought so too, but they aren't there. And I already checked the kitchen counter where I usually leave them. Wait a moment... Yes! They must have fallen out when I sat down. They were right here, under the magazine next to the sofa." },
+                { id: 4, question: "What does the girl want to buy?", options: ["A new backpack.", "A jacket.", "A pair of running shoes."], answer: "C", script: "Boy: Mom, I really need something to carry my books for school. This old backpack has holes in it.\nWoman: Well, we can stop at the sports shop later. I need a new running jacket, but we can look for your bag first.\nBoy: Actually, could we look at those cool new sports shoes they advertised? My old ones are worn out.\nWoman: Hmm, okay. Let's start with the shoes, then." },
+                { id: 5, question: "What is the weather forecast for tomorrow?", options: ["Sunny and warm.", "Cold and snowy.", "Rainy and windy."], answer: "C", script: "Man (Weather reporter): Good evening. After a lovely, sunny day today, expect conditions to change drastically. Tomorrow, we’ll see strong winds arriving early, bringing heavy rain, especially by midday. Temperatures will remain mild, so no chance of snow yet." },
+                { id: 6, question: "Where will the friends meet?", options: ["At the cinema entrance.", "In the cafe next to the cinema.", "At the bus stop outside the station."], answer: "A", script: "Woman: Shall we meet up to see the new action movie?\nMan: Great idea! How about meeting inside the cafe first? It's right next to the cinema entrance on King Street.\nWoman: Actually, that cafe is always packed. Let's just meet at the entrance. It's easier to find each other there than trying to find a table.\nMan: Sounds good. See you at the entrance then." },
+                { id: 7, question: "What activity did the boy decide against?", options: ["Cycling.", "Swimming.", "Playing tennis."], answer: "A", script: "Woman: So, what did you decide to do at the summer camp today?\nBoy: Well, I wanted to join the tennis group, but it was full. They offered me cycling instead.\nWoman: And?\nBoy: I decided not to do the cycling in the end. It looks like the pool is free, so I think I’ll go swimming now." }
+            ],
+            part2: [
+                { id: 8, question: "What motivated Sarah to become a writer?", options: ["Her passion for reading adventure stories.", "The encouragement from her school teacher.", "A desire to share her unusual dreams."], answer: "B", script: "Interviewer: Welcome back to the show. Today we're joined by Sarah Jenkins... Sarah, what first inspired you to start writing? Sarah: I used to keep a journal of all the weird and wonderful dreams I had. One of my high school teachers read a few entries and convinced me that I had a unique voice and that I should develop those stories. That was the push I needed." },
+                { id: 9, question: "What does Sarah say about the location where she writes?", options: ["She requires complete silence and a view of nature.", "She prefers to write in public places like cafes.", "She can write productively almost anywhere."], answer: "C", script: "Interviewer: And where do you actually do the writing? Do you need a special environment? Sarah: I used to think I needed a silent study... I’ve learned to adapt. I can actually block out noise pretty easily... mostly I just write at my kitchen table. It doesn't really matter where, as long as I have my laptop." },
+                { id: 10, question: "How does Sarah usually plan her stories?", options: ["She writes down a detailed chapter-by-chapter outline.", "She starts writing and lets the characters lead the plot.", "She draws a visual map of the entire fantasy world first."], answer: "B", script: "Interviewer: When you start a book, do you plan every chapter meticulously? Sarah: I decide on the beginning and the end, and then I just let my characters start talking. They always take me in directions I never expected. It makes the writing exciting." },
+                { id: 11, question: "Sarah mentions that the biggest challenge for new writers is:", options: ["Finding the time to write regularly.", "Dealing with criticism from early readers.", "Getting their first book published."], answer: "A", script: "Interviewer: ...what do you see as the biggest hurdle? Sarah: I think the real struggle... is maintaining the habit. Life is so busy, and it's easy to stop writing for weeks. You must be disciplined to find the time, even if it’s just 30 minutes a day." },
+                { id: 12, question: "What advice does Sarah give to aspiring young writers?", options: ["Read widely in different genres.", "Focus only on writing what they know best.", "Write a little bit every single day."], answer: "C", script: "Interviewer: And finally, what's next? Sarah: ...I think the real struggle... is maintaining the habit. You must be disciplined to find the time, even if it’s just 30 minutes a day." },
+                { id: 13, question: "How does Sarah feel about starting her new novel?", options: ["Excited about a completely new direction.", "Nervous about meeting her publisher’s deadlines.", "Worried it won't be as good as her first one."], answer: "A", script: "Interviewer: ...How do you feel about starting the next one? Sarah: I’ve got a completely fresh idea—a thriller this time... I’m actually really excited about tackling a different genre." }
+            ]
+        };
+
+        const choiceMap = ["A", "B", "C"];
+        const userSelections = {};
+
+        function handleOptionClick(event, questionId) {
+            const clickedOption = event.currentTarget;
+            const parentQuestion = document.getElementById(`q-${questionId}`);
+            
+            // 1. Clear previous selection in this question group
+            parentQuestion.querySelectorAll('.question-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // 2. Set new selection
+            clickedOption.classList.add('selected');
+
+            // 3. Store user selection (optional, but good practice)
+            const optionIndex = Array.from(parentQuestion.querySelectorAll('.question-option')).indexOf(clickedOption);
+            userSelections[questionId] = choiceMap[optionIndex];
+        }
+
+        function renderQuestions() {
+            const part1Container = document.getElementById('part1-questions');
+            const part2Container = document.getElementById('part2-questions');
+            
+            // Function to generate question block
+            const generateQuestionBlock = (q, container) => {
+                const qEl = document.createElement('div');
+                qEl.id = `q-${q.id}`;
+                qEl.className = `mb-6 p-4 border-l-4 ${q.id <= 7 ? 'border-blue-500 bg-blue-50' : 'border-green-500 bg-green-50'} rounded-md`;
+                qEl.innerHTML = `<p class="font-bold mb-3">Câu ${q.id}. ${q.question}</p>`;
+                
+                q.options.forEach((opt, index) => {
+                    const optionEl = document.createElement('div');
+                    optionEl.className = 'question-option';
+                    optionEl.innerHTML = `<span class="font-medium">${choiceMap[index]}.</span> ${opt}`;
+                    optionEl.onclick = (e) => handleOptionClick(e, q.id);
+                    qEl.appendChild(optionEl);
+                });
+                container.appendChild(qEl);
+            };
+
+            // Render Part 1
+            scriptData.part1.forEach(q => generateQuestionBlock(q, part1Container));
+
+            // Render Part 2
+            scriptData.part2.forEach(q => generateQuestionBlock(q, part2Container));
+        }
+
+        function revealAnswers() {
+            const resultsSection = document.getElementById('results-section');
+            const answerKeyContainer = document.getElementById('answer-key');
+            const scriptContainer = document.getElementById('audio-script');
+            const revealBtn = document.getElementById('reveal-btn');
+            
+            // Toggle visibility
+            if (resultsSection.classList.contains('hidden')) {
+                resultsSection.classList.remove('hidden');
+                revealBtn.textContent = 'Ẩn Đáp án & Kịch bản';
+                revealBtn.classList.remove('bg-blue-600');
+                revealBtn.classList.add('bg-gray-600');
+            } else {
+                resultsSection.classList.add('hidden');
+                revealBtn.textContent = 'Kiểm tra Đáp án & Xem Kịch bản';
+                revealBtn.classList.remove('bg-gray-600');
+                revealBtn.classList.add('bg-blue-600');
+                return;
+            }
+
+            let keyHtml = `<h3 class="text-2xl font-bold mb-4 text-gray-800">Đáp Án</h3>`;
+            let scriptHtml = `<h3 class="text-2xl font-bold mb-4 text-gray-800">Kịch Bản (Audio Script)</h3>`;
+            let score = 0;
+            const totalQuestions = scriptData.part1.length + scriptData.part2.length;
+
+            // Part 1 Answers and Script
+            keyHtml += `<h4 class="text-xl font-semibold mt-6 mb-3 text-blue-600">Part 1</h4>`;
+            scriptHtml += `<h4 class="text-xl font-semibold mt-6 mb-3 text-blue-600">Part 1: Nghe Ngắn</h4>`;
+            scriptData.part1.forEach(q => {
+                const isCorrect = userSelections[q.id] === q.answer;
+                if (isCorrect) score++;
+
+                const userChoiceDisplay = userSelections[q.id] ? 
+                    `<span class="${isCorrect ? 'text-green-600' : 'text-red-600'} font-bold">(Bạn chọn: ${userSelections[q.id]})</span>` : 
+                    `<span class="text-yellow-600 font-bold">(Chưa chọn)</span>`;
+
+                keyHtml += `<p class="mb-1"><span class="font-bold">Câu ${q.id}:</span> <span class="correct-answer-key">${q.answer}</span> ${userChoiceDisplay}</p>`;
+                
+                scriptHtml += `<div class="mb-4 p-3 bg-gray-50 rounded-md border-l-4 border-blue-200"><p class="font-bold">Câu ${q.id}:</p><p class="whitespace-pre-wrap text-sm">${q.script.replace(/\n/g, '<br>')}</p></div>`;
+            });
+
+            // Part 2 Answers and Script
+            keyHtml += `<h4 class="text-xl font-semibold mt-6 mb-3 text-green-600">Part 2</h4>`;
+            scriptHtml += `<h4 class="text-xl font-semibold mt-6 mb-3 text-green-600">Part 2: Đối Thoại Dài</h4>`;
+            scriptData.part2.forEach(q => {
+                const isCorrect = userSelections[q.id] === q.answer;
+                if (isCorrect) score++;
+                
+                const userChoiceDisplay = userSelections[q.id] ? 
+                    `<span class="${isCorrect ? 'text-green-600' : 'text-red-600'} font-bold">(Bạn chọn: ${userSelections[q.id]})</span>` : 
+                    `<span class="text-yellow-600 font-bold">(Chưa chọn)</span>`;
+                    
+                keyHtml += `<p class="mb-1"><span class="font-bold">Câu ${q.id}:</span> <span class="correct-answer-key">${q.answer}</span> ${userChoiceDisplay}</p>`;
+                
+                scriptHtml += `<div class="mb-4 p-3 bg-gray-50 rounded-md border-l-4 border-green-200"><p class="font-bold">Câu ${q.id}:</p><p class="whitespace-pre-wrap text-sm">${q.script.replace(/\n/g, '<br>')}</p></div>`;
+            });
+
+            // Summary Score
+            const scoreHtml = `
+                <div class="bg-yellow-100 p-4 rounded-lg text-center mb-6 border border-yellow-300">
+                    <p class="text-xl font-bold text-yellow-800">Tóm Tắt Kết Quả:</p>
+                    <p class="text-2xl font-extrabold text-yellow-800">${score} / ${totalQuestions} câu đúng</p>
+                </div>`;
+
+            answerKeyContainer.innerHTML = scoreHtml + keyHtml;
+            scriptContainer.innerHTML = scriptHtml;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderQuestions();
+            document.getElementById('reveal-btn').addEventListener('click', revealAnswers);
+        });
+    </script>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-gray-800">Bài Kiểm Tra Nghe PET (B1)</h1>
+            <p class="text-lg text-gray-600 mt-2">Mô phỏng Part 1 & Part 2 (Làm bài với kịch bản)</p>
+            <div class="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-sm" role="alert">
+                <span class="font-bold">Lưu ý:</span> Ứng dụng này sử dụng **kịch bản văn bản** thay cho file nghe để bạn tự luyện tập và đối chiếu đáp án.
+            </div>
+        </header>
+
+        <section id="question-section" class="mb-8 space-y-8">
+            <div class="section-card">
+                <h2 class="text-2xl font-bold mb-4 text-blue-600 border-b pb-2">PART 1: Nghe Ngắn (7 Câu)</h2>
+                <p class="mb-4 text-gray-700">Đọc kỹ câu hỏi và các lựa chọn (A, B, C). **Nhấp vào lựa chọn bạn cho là đúng** để đánh dấu câu trả lời.</p>
+                <div id="part1-questions">
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h2 class="text-2xl font-bold mb-4 text-green-600 border-b pb-2">PART 2: Đối Thoại Dài (6 Câu)</h2>
+                <p class="mb-4 text-gray-700">Đọc kỹ câu hỏi và các lựa chọn (A, B, C). **Nhấp vào lựa chọn bạn cho là đúng** để đánh dấu câu trả lời.</p>
+                <div id="part2-questions">
+                </div>
+            </div>
+        </section>
+
+        <div class="text-center my-10">
+            <button id="reveal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg">
+                Kiểm tra Đáp án & Xem Kịch bản
+            </button>
+        </div>
+
+        <section id="results-section" class="hidden space-y-8 mt-8">
+            <div class="section-card p-6 md:p-8">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">KẾT QUẢ VÀ PHÂN TÍCH</h2>
+                
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 bg-gray-100 p-4 rounded-lg h-full" id="answer-key">
+                        <!-- Answer Key will be dynamically inserted here -->
+                    </div>
+                    
+                    <div class="md:col-span-2" id="audio-script">
+                        <!-- Audio Script will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
